@@ -4,7 +4,6 @@ import pygame
 from gui.Colors import *
 from logger import setup_logger
 
-from hello import hello
 
 # Lazy loading of other modules
 def load_gui_modules():
@@ -196,10 +195,10 @@ def main():
 
 
     #Create spawn point for Lace and Clamp
-    lc_spawn = Spawn(40, 460, stations["Lace and Clamp"], time=time, spawn_interval=180, random_kva=True)
+    lc_spawn = Spawn(40, 460, stations["Lace and Clamp"],paths, time=time, spawn_interval=180, random_kva=True)
 
     #Custom Spawn
-    custom_spawn = Spawn(500, 300, stations["FLIP"], time=time,kva_list=[2500])  # Custom spawn point in
+    custom_spawn = Spawn(500, 300, stations["FLIP"],paths, time=time,kva_list=[2500])  # Custom spawn point in
 
     #List of spawn points
     spawn_points = [lc_spawn]
@@ -258,9 +257,9 @@ def main():
         #When time is not paused
         if not time.is_paused():
             delta_time = time.get_delta_time()
-            time.update(delta_time)
-            if time_slider.check_value_changed():
-                time.set_time_scale(time_slider.get_value())
+            time.update()
+            #if time_slider.check_value_changed():
+            time.set_time_scale(time_slider.get_value())
             
 
             #Update units
@@ -277,8 +276,6 @@ def main():
             for spawn in spawn_points:
                 new_unit = spawn.update(time,delta_time, window)
                 if new_unit:
-                    #new_unit = spawn.spawn_unit(window, Unit, stations)
-                    new_unit.station_path = paths #Set the station path for the unit
                     units.append(new_unit)
         # Clear the screen
         window.screen.fill((0, 0, 0))  # Fill with black color
