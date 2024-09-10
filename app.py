@@ -4,6 +4,8 @@ import pygame
 from gui.Colors import *
 from logger import setup_logger
 
+from hello import hello
+
 # Lazy loading of other modules
 def load_gui_modules():
     global Button, Window, Slider
