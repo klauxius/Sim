@@ -2,6 +2,7 @@
 from re import X
 import pygame
 from gui.Colors import *
+from logger import setup_logger
 
 # Lazy loading of other modules
 def load_gui_modules():
@@ -25,6 +26,9 @@ def load_sim_modules():
 def main():
     pygame.init()
 
+    #Setup logger
+    logger = setup_logger()
+
     load_gui_modules()
     window = Window(width=1920, height=1080)
     window.init_display()
@@ -33,7 +37,7 @@ def main():
     load_sim_modules()
 
     # Initialize time
-    time = Time(time_scale=260, start_hour=8, start_minute=30)
+    time = Time(time_scale=80, start_hour=7, start_minute=30)
 
     # Load background
     background = pygame.image.load('new_img.png')
@@ -193,7 +197,7 @@ def main():
     lc_spawn = Spawn(40, 460, stations["Lace and Clamp"], time=time, spawn_interval=180, random_kva=True)
 
     #Custom Spawn
-    custom_spawn = Spawn(500, 300)  # Custom spawn point in
+    custom_spawn = Spawn(500, 300, stations["FLIP"], time=time,kva_list=[2500])  # Custom spawn point in
 
     #List of spawn points
     spawn_points = [lc_spawn]
@@ -208,7 +212,11 @@ def main():
     pause_button = Button(10, 10, 100, 50, "Pause", GREEN)
 
     #Create time scale slider
-    time_slider = Slider(80, 400, 80, 100, 220, 50)
+    time_slider = Slider(80, 400, time.get_time_scale(), 100, 220, 50)
+
+    # Debug: Print all stations
+    for name, station in stations.items():
+        print(f"Station: {name}, Object: {station}")
 
     # Main game loop
     running = True
@@ -233,10 +241,7 @@ def main():
                     time.toggle_pause()
                     pause_button.text = "Play" if time.is_paused() else "Pause"
                     pause_button.color = RED if time.is_paused() else GREEN
-                time_slider.handle_event(pygame.event.Event(event.type, pos=adjusted_pos))
-            elif event.type in (pygame.MOUSEMOTION, pygame.MOUSEBUTTONUP):
-                adjusted_pos = window.adjust_mouse_pos(event.pos)
-                time_slider.handle_event(pygame.event.Event(event.type, pos=adjusted_pos))
+                time_slider.handle_event(event)
             elif event.type == pygame.VIDEORESIZE:
                 window.on_resize()
                 background = pygame.transform.scale(background, window.get_size())
@@ -250,25 +255,28 @@ def main():
 
         #When time is not paused
         if not time.is_paused():
-            delta_time = clock.get_time() / 1000.0
-            time.update()
-            time.set_time_scale(time_slider.get_value())
+            delta_time = time.get_delta_time()
+            time.update(delta_time)
+            if time_slider.check_value_changed():
+                time.set_time_scale(time_slider.get_value())
+            
 
             #Update units
             units = [unit for unit in units if not unit.completed]
             for unit in units:
                 unit.update(delta_time)
 
-            
+            #Update cranes
             for station in stations.values():
                 for crane in station.cranes.values():
                     crane.update(delta_time)
 
             # Spawn new units
             for spawn in spawn_points:
-                new_unit = spawn.update(time,clock.get_time() / 1000.0, window)
+                new_unit = spawn.update(time,delta_time, window)
                 if new_unit:
                     #new_unit = spawn.spawn_unit(window, Unit, stations)
+                    new_unit.station_path = paths #Set the station path for the unit
                     units.append(new_unit)
         # Clear the screen
         window.screen.fill((0, 0, 0))  # Fill with black color
@@ -291,7 +299,7 @@ def main():
         for spawn in spawn_points:
             spawn.draw(window)
 
-        load_gui_modules()
+        #load_gui_modules()
 
         # Draw pause/play button
         pause_button.draw(window.get_surface())
@@ -307,13 +315,14 @@ def main():
         time_slider.draw(window.get_surface())
 
         # Handle window events (including resizing)
-        running = window.handle_events()
+        #running = window.handle_events()
+
 
         #update the display
         window.update()
 
         # Cap the frame rate
-        clock.tick(60)
+        #clock.tick(60)
     
     #Clean exit if needed 
     window.quit()
