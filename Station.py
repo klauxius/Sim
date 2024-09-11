@@ -1,6 +1,7 @@
 import pygame
 from gui.Colors import*
 from Workstation import Workstation
+import sys
 
 
 class Station:
@@ -18,6 +19,7 @@ class Station:
         self.time = time
         self.cranes = cranes or {}
 
+
     def get_available_workstation(self):
         #Loop through all workstions in the list
         for workstation in self.workstations:
@@ -31,6 +33,9 @@ class Station:
 
         print(f"Time: {self.time.format_time()} - No available workstations at {self.name}")
         return None
+    
+    def has_capacity(self):
+        return any(workstation.is_available() for workstation in self.workstations)
     
     def are_resources_available(self, resource_names, current_time):
         for resource_name in resource_names:
@@ -120,7 +125,7 @@ class Station:
         if self.wip_capacity > 0:
             font = pygame.font.Font(None, 24)
             text = font.render(f"{self.name} WIP: {len(self.wip_units)}/{self.wip_capacity}", True, BLACK)
-            self.window.screen.blit(text, (self.wip_positions[0][0], self.wip_positions[0][1] - 30))
+            self.window.screen.blit(text, self.window.scale_pos((self.wip_positions[0][0], self.wip_positions[0][1] - 30)))
        
         #draw all cranes
         for crane in self.cranes.values():

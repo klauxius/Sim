@@ -79,24 +79,24 @@ class Workstation:
         
         # Draw workstation name
         name_text = font.render(self.name, True, BLACK)
-        name_rect = name_text.get_rect(center=self.window.scale_pos((self.position[0] + 5, self.position[1] - 40)))
+        name_rect = name_text.get_rect(center=(self.position[0] + 5, self.position[1] - 40))
         self.window.screen.blit(name_text, name_rect)
         
         # Draw average processing time
         avg_time = self.get_average_processing_time()
         time_text = font.render(f"Avg: {self.format_time_ms(avg_time)}", True, BLACK)
-        time_rect = time_text.get_rect(center=self.window.scale_pos((self.position[0] - 10, self.position[1] + 90)))
+        time_rect = time_text.get_rect(center=(self.position[0] - 10, self.position[1] + 90))
         self.window.screen.blit(time_text, time_rect)
 
         # Draw average cycle time
         avg_cycle_time = self.get_average_cycle_time(self.name)
         cycle_text = font.render(f"Cycle: {self.format_time_ms(avg_cycle_time)}", True, BLACK)
-        cycle_rect = cycle_text.get_rect(center=self.window.scale_pos((self.position[0] - 10, self.position[1] + 110)))
+        cycle_rect = cycle_text.get_rect(center=(self.position[0] - 10, self.position[1] + 110))
         self.window.screen.blit(cycle_text, cycle_rect)
         
         # Draw queue length
         queue_text = font.render(f"Queue: {len(self.queue)}", True, BLACK)
-        queue_rect = queue_text.get_rect(center=self.window.scale_pos((self.position[0] - 10, self.position[1] + 130)))
+        queue_rect = queue_text.get_rect(center=(self.position[0] - 10, self.position[1] + 130))
         self.window.screen.blit(queue_text, queue_rect)
    
     @staticmethod

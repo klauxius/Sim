@@ -1,6 +1,7 @@
 import pygame
 from gui.Colors import*
 from gui.Window import Window
+import sys
 
 
 
@@ -10,7 +11,7 @@ class Time:
         self.simulation_time = (start_hour * 3600 + start_minute * 60)  # Start time in seconds
         self.real_time = 0  # in seconds
         self.shift_start = 7.5  # 7:30 AM
-        self.shift_end = 24  # 3:30 PM
+        self.shift_end = 24
         self.paused = False
         self.breaks = {
             "Morning Break": {"start": "9:55", "end": "10:20"},
@@ -19,6 +20,7 @@ class Time:
         }
         self.last_update_time = pygame.time.get_ticks() / 1000.0
         self.start_time = self.simulation_time
+        self.last_real_time = pygame.time.get_ticks() / 1000.0
 
     def run_time(self):
         total_seconds = int(self.simulation_time - self.start_time)
@@ -34,20 +36,30 @@ class Time:
 
     def update(self):
         if not self.paused:
-            current_time = pygame.time.get_ticks() / 1000.0  # Convert to seconds
-            delta_time = current_time - self.last_update_time
-            self.real_time += delta_time
-            self.simulation_time += delta_time * self.time_scale
-            self.last_update_time = current_time
+            current_real_time = pygame.time.get_ticks() / 1000.0
+            real_delta_time = current_real_time - self.last_real_time
+            self.last_real_time = current_real_time
+
+            scaled_delta_time = real_delta_time * self.time_scale
+            self.simulation_time += scaled_delta_time
+            self.real_time += real_delta_time
+            self.last_update_time = current_real_time
 
     def toggle_pause(self):
         self.paused = not self.paused
         if not self.paused:
             self.last_update_time = pygame.time.get_ticks() / 1000.0  # Reset last update time when unpausing
+        print(f"Simulation {'paused' if self.paused else 'unpaused'} at {self.format_time()}")
 
     def is_paused(self):
+        #print(f"Time: {self.format_time()} - Time scale: {self.time_scale}")
         return self.paused
-
+    
+    def get_delta_time(self):
+        current_time = pygame.time.get_ticks() / 1000.0
+        delta_time = current_time - self.last_update_time
+        self.last_update_time = current_time
+        return delta_time* self.time_scale
 
     def get_simulation_time(self):
         return self.simulation_time

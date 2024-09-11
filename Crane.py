@@ -1,5 +1,6 @@
 import pygame
 from gui.Colors import*
+import sys
 
 class Crane:
     def __init__(self, name, initial_position, window, time):
@@ -61,4 +62,4 @@ class Crane:
     def draw(self):
         scaled_pos = self.window.scale_pos(self.position)
         pygame.draw.circle(self.window.screen, BLUE, scaled_pos, 10)
-        pygame.draw.line(self.window.screen, BLACK, (scaled_pos[0], 0), scaled_pos, 2)
+        pygame.draw.line(self.window.screen, BLACK, (scaled_pos[0], 100), scaled_pos, 2)

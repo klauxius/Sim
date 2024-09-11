@@ -1,9 +1,11 @@
 import pygame
 import random
 from gui.Colors import*
+import sys
+
 
 class Unit:
-    def __init__(self,station=None, pos=None, kva=None, time=None):
+    def __init__(self,station,station_path, pos=None, kva=None, time=None):
         self.station = station
         self.time = time
         self.pos = pos if pos is not None else (0, 0)  # Default to (0, 0) if no position is provided
@@ -11,7 +13,7 @@ class Unit:
         self.has_workstation = None
         self.target_station = station.name
         self.station_operations = station.operations.copy()
-        self.speed = 10
+        self.speed = 50
         self.timer = 0
         self.processing = False
         self.kva = kva
@@ -33,13 +35,14 @@ class Unit:
         self.station_resources = []
         self.resource_wait_timers = {}  # New attribute to track wait times for resources
         self.resource_wait_time = 240  # 30 seconds wait time
-        self.base_speed = 20
+        self.base_speed = 50
         self.current_resource_position = None
         self.target_pos = None
         self.current_workstation = None
         self.current_resources = []
         self.current_operation = None
-        self.stations = None
+        self.station_path = station_path
+        self.stations_dict = None
         #target_pos = available_workstation.position
         #self.operation_progress = 0  # Add this line
     
@@ -77,8 +80,35 @@ class Unit:
                 self.processing = False
                 return  # Pause processing outside shift hours or during break
             
+            #If the unit has no current operation
+            if not self.current_operation:
+                #And the current station has has an operations list 
+                if self.station_operations:
+                    #Get the next operation in the list
+                    next_operation = self.station_operations[0]
+                    
+                    #Set the current operation to the next operation
+                    self.current_operation = next_operation
+                    #Get the required resources for the operation
+                    required_resources = next_operation.get('required_resource', [])
+                    #required_resources = [r for r in required_resources if not r.startswith("workstation")]
+                    print(f"Debug: Required resources: {required_resources}")
+                    if not self.current_resources:  # Only attempt to acquire resources if we don't have any
+                        print(f"Debug: {self} attempting to acquire resources for operation: {next_operation['name']}")
+                        if self.acquire_resources(required_resources, current_time):
+                            #Remove the operation from the list
+                            self.current_operation = self.station_operations.pop(0)
+                            print(f"Time: {self.time.format_time()} - {self} started operation: {self.current_operation['name']} at {self.current_station}")
+                            self.operation_timer = 0
+                        else:
+                            #print(f"Time: {self.time.format_time()} - {self} at {self.station.name} starting: {self.has_an_operation['name']} using {', '.join(self.current_resources)}")
+                            print(f"Time: {self.time.format_time()} - {self} waiting for resource {self.current_resources} at {self.current_station}")
+
+            #If the unit has an operation   
             if self.current_operation:
+                #Calculate the operation time
                 operation_time = self.calculate_operation_time(self.current_operation)
+                #Increment the operation timer
                 self.operation_timer += time_increment
                 self.operation_progress = min(self.operation_timer / operation_time, 1)
 
@@ -90,32 +120,13 @@ class Unit:
                     self.operation_timer = 0
                 
                 #If the unit has no operations 
-            if not self.current_operation:
-                #And the current station has has an operations list
-                if self.station_operations:
-                    next_operation = self.station_operations[0]
-                    #self.current_operation = next_operation
-                    required_resources = next_operation.get('required_resource', [])
-                    #required_resources = [r for r in required_resources if not r.startswith("workstation")]
-
-                    
-                    print(f"Debug: Required resources: {required_resources}")
-                    if not self.current_resources:  # Only attempt to acquire resources if we don't have any
-                        print(f"Debug: {self} attempting to acquire resources for operation: {next_operation['name']}")
-                        if self.acquire_resources(required_resources, current_time):
-                            self.current_operation = self.station_operations.pop(0)
-                            print(f"Time: {self.time.format_time()} - {self} started operation: {self.current_operation['name']} at {self.current_station}")
-                            self.operation_timer = 0
-                        else:
-                            #print(f"Time: {self.time.format_time()} - {self} at {self.station.name} starting: {self.has_an_operation['name']} using {', '.join(self.current_resources)}")
-                            print(f"Time: {self.time.format_time()} - {self} waiting for resource {self.current_resources} at {self.current_station}")
-                    
-                elif self.completed_operations >= self.total_operations:
-                    self.finish_processing()
+            
+            elif self.completed_operations >= self.total_operations:
+                self.finish_processing()
                     # No more operations at the current station
-                    print(f"Time: {self.time.format_time()} - {self} completed all operations at {self.station.name}")
-                else:
-                    print(f"Debug: {self} has no more operations at {self.current_station}, but hasn't completed all operations")
+                print(f"Time: {self.time.format_time()} - {self} completed all operations at {self.station.name}")
+            else:
+                print(f"Debug: {self} has no more operations at {self.current_station}, but hasn't completed all operations")
 
     def update(self, delta_time):
         if not self.time.is_paused():
@@ -125,9 +136,9 @@ class Unit:
             elif self.target_station and self.target_pos:
                 self.move_to_target(delta_time)
             else:
-                next_station = self.get_next_station(self.current_station, self.stations)
-                if next_station and self.check_station_capacity(next_station, self.stations):
-                    self.set_next_target(next_station, self.stations)
+                next_station = self.get_next_station(self.current_station, self.station_path)
+                if next_station and self.check_station_capacity(next_station, self.stations_dict):
+                    self.set_next_target(next_station, self.stations_dict)
 
     def acquire_resources(self, required_resources, current_time):
         acquired_resources = []
@@ -168,10 +179,10 @@ class Unit:
             self.current_workstation.finish_processing()
             self.has_workstation = False
         self.processing = False
-        next_station = self.get_next_station(self.current_station)
+        next_station = self.get_next_station(self.current_station, self.station_path)
         #If next station exists and it has available capacity
         if next_station and self.check_station_capacity(next_station):
-            self.set_next_target(next_station)
+            self.set_next_target(next_station, self.stations_dict)
         else:
             print(f"Time: {self.time.format_time()} - {self} waiting for capacity at {next_station}")
     
@@ -198,10 +209,10 @@ class Unit:
         self.resource_wait_timers[resource_name] = current_time
         print(f"Debug: {self} set wait timer for resource {resource_name}")
 
-    def set_next_target(self, next_station, stations):
+    def set_next_target(self, next_station, stations_dict):
 
         self.current_station = next_station
-        self.station = stations[next_station]
+        self.station = stations_dict[next_station]
         self.station_operations = self.station.operations.copy()
         self.total_operations = len(self.station_operations)
         self.completed_operations = 0
@@ -246,9 +257,9 @@ class Unit:
             self.move_to_target(time_increment)
         else:
             # If the unit has completed processing at the current station, move to the next one
-            next_station = self.get_next_station(self.current_station, self.stations)
-            if next_station and self.check_station_capacity(next_station, self.stations):
-                self.set_next_target(next_station, self.stations)
+            next_station = self.get_next_station(self.current_station, self.station_path)
+            if next_station and self.check_station_capacity(next_station, self.station_path):
+                self.set_next_target(next_station, self.stations_dict)
             else:
                 # If there's no next station or it's at capacity, do nothing
                 pass
@@ -280,7 +291,7 @@ class Unit:
             move_x = (dx / distance) * current_speed
             move_y = (dy / distance) * current_speed
             self.pos = (self.pos[0] + move_x, self.pos[1] + move_y)
-            print(f"Debug: {self} moving to {self.target_station}. Current position: {self.pos}")
+            #print(f"Debug: {self} moving to {self.target_station}. Current position: {self.pos}")
     
     def draw(self,surface, window):
         if not self.in_wip:
@@ -310,9 +321,10 @@ class Unit:
                 return end
         return None  # Return None if there's no next station
     
+    #Check if the station has available capacity using the stations_dict
     @staticmethod
-    def check_station_capacity(station_name, stations):
-        station = stations[station_name]
+    def check_station_capacity(station_name, stations_dict):
+        station = stations_dict[station_name]
         return station.get_available_workstation() is not None
     
     @property
