@@ -1,7 +1,5 @@
 import pygame
 
-
-
 # Update the Resource class to handle capacity
 class Resource:
     def __init__(self, name, capacity=1, cooldown_time=0, position=(0, 0)):
