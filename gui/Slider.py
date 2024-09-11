@@ -1,19 +1,26 @@
 import pygame
+import sys
 
 class Slider:
     def __init__(self, min_value, max_value, initial_value, width, x, y):
         self.min_value = min_value
         self.max_value = max_value
         self.value = initial_value
+        self.previous_value = initial_value
         self.width = width
         self.x = x
         self.y = y
         self.dragging = False
+        self.value_changed = False
+        self.height = 10  # Adjust this value as needed
+        self.rect = pygame.Rect(self.x, self.y - self.height // 2, self.width, self.height)
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if self.is_over(event.pos):
+            if self.rect.collidepoint(event.pos):
+            #if self.is_over(event.pos):
                 self.dragging = True
+                self.update_value(event.pos[0])
         elif event.type == pygame.MOUSEBUTTONUP:
             self.dragging = False
         elif event.type == pygame.MOUSEMOTION:
@@ -26,9 +33,22 @@ class Slider:
     def update_value(self, x):
         self.value = ((x - self.x) / self.width) * (self.max_value - self.min_value) + self.min_value
         self.value = max(self.min_value, min(self.max_value, self.value))
+        new_value = ((x - self.x) / self.width) * (self.max_value - self.min_value) + self.min_value
+        new_value = max(self.min_value, min(self.max_value, new_value))
+        if new_value != self.value:
+            self.previous_value = self.value
+            self.value = new_value
+            self.value_changed = True
 
     def get_value(self):
+        print(f"Slider value: {self.value}")
         return self.value
+    
+    def check_value_changed(self):
+        if self.value_changed:
+            self.value_changed = False
+            return True
+        return False
 
     def draw(self, surface):
         pygame.draw.line(surface, (200, 200, 200), (self.x, self.y), (self.x + self.width, self.y), 2)
