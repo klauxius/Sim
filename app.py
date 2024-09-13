@@ -19,20 +19,19 @@ def load_sim_modules():
     from Station import Station
     from Resource import Resource
     from Crane import Crane
-    from Spawn import Spawn
+    from Spawn import Spawn as sp
     from Unit import Unit
 
 
 
 def main():
     pygame.init()
-
+    sp = Spawn()
     #Setup logger
     logger = setup_logger()
 
     load_gui_modules()
-    window = Window(width=1920, height=1080)
-    window.init_display()
+    
 
     #Attempt at speeding start up time
     load_sim_modules()
@@ -43,8 +42,12 @@ def main():
     # Load background
     background = pygame.image.load('new_img.png')
     background = pygame.transform.scale(background, window.get_size())
+    content_size = background.get_size()
     
-    #time.format_time()
+    #Set Window
+    window = Window(content_size,width=1920, height=1080)
+    window.init_display()
+    
     
     #Define station operations
     station_operations = {
@@ -80,7 +83,7 @@ def main():
             
     
         ],
-        "FLIP":[{"name": "FLIP 🔁", "base_time": 60, "required_resource":["crane"]}
+        "FLIP":[{"name": "FLIP", "base_time": 60, "required_resource":["crane"]}
         ],
         "Lace and Clamp WIP":[{"name": "Move to WIP", "base_time": 60}
         ],
@@ -298,7 +301,6 @@ def main():
         for spawn in spawn_points:
             spawn.draw(window)
 
-        #load_gui_modules()
 
         # Draw pause/play button
         pause_button.draw(window.get_surface())
@@ -316,9 +318,9 @@ def main():
         # Handle window events (including resizing)
         #running = window.handle_events()
 
-
+        keys = pygame.key.get_pressed()
         #update the display
-        window.update()
+        window.update(keys)
 
         # Cap the frame rate
         #clock.tick(60)
