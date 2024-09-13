@@ -1,4 +1,6 @@
 import pygame
+from Scroll import Scroll
+
 
 class Window:
     def __init__(self, width = 1080, height=720, title="Network Transformer Simulation"):
@@ -9,6 +11,7 @@ class Window:
         self.scale = 1
         self.offset = (0, 0)
         self.is_fullscreen = False
+        self.scroll = Scroll()
     
     def init_display(self):
         pygame.init()
