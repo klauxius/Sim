@@ -3,15 +3,15 @@ from Scroll import Scroll
 
 
 class Window:
-    def __init__(self, width = 1080, height=720, title="Network Transformer Simulation"):
+    def __init__(self,content_size, width = 1080, height=720):
         self.width = width
         self.height = height
-        self.title = title
+        self.title = title="Network Transformer Simulation"
         self.original_size = (1920, 1080)  # Original design size
         self.scale = 1
         self.offset = (0, 0)
         self.is_fullscreen = False
-        self.scroll = Scroll()
+        self.scroll = Scroll(self, content_size)
     
     def init_display(self):
         pygame.init()
@@ -25,6 +25,7 @@ class Window:
             self.screen = pygame.display.set_mode((self.width, self.height), pygame.FULLSCREEN)
         else:
             self.screen = pygame.display.set_mode((self.width, self.height))
+    
     def toggle_fullscreen(self):
         self.is_fullscreen = not self.is_fullscreen
         if self.is_fullscreen:
@@ -39,8 +40,9 @@ class Window:
     def clear(self):
         self.screen.fill(self.background_color)
 
-    def update(self):
+    def update(self, keys):
         pygame.display.flip()
+        self.scroll.update(keys)
 
     def get_size(self):
         return self.width, self.height
@@ -63,7 +65,8 @@ class Window:
     
     # Add a new method to adjust mouse positions
     def adjust_mouse_pos(self, pos):
-        return self.unscale_pos(pos)
+        scaled_pos = (pos[0] / self.scale, pos[1] / self.scale)
+        return self.scroll.local_to_global(scaled_pos)
 
     def scale_pos(self, pos):
         if pos is None:
@@ -79,8 +82,10 @@ class Window:
         pygame.quit()
 
     # Call this method when the window is resized
-    def on_resize(self):
-        self.scale_screen()
+    def on_resize(self, new_size):
+        self.width, self.height = new_size
+        self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
+        self.scroll.handle_window_resize((self.width, self.height))
     
     def draw_text(self, text, position, font_size=36, color=(0, 0, 0)):
         font = pygame.font.Font(None, font_size)
